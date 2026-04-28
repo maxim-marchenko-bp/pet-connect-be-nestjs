@@ -10,10 +10,13 @@ export class User extends BaseEntity {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   lastname: string;
 
-  @Column({ name: 'date_of_birth' })
+  @Column()
+  password: string;
+
+  @Column({ name: 'date_of_birth', nullable: true })
   dateOfBirth: Date;
 
   @ManyToMany(() => Pet, (pet) => pet.users)
