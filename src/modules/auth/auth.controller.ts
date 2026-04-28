@@ -15,12 +15,7 @@ export class AuthController {
   @Post('register')
   @UsePipes(ValidationPipe)
   async register(@Body() userDto: CreateUserDto) {
-    try {
-      await this.authService.register(userDto);
-      return 'OK';
-    } catch (error) {
-      console.log('IN ERROR');
-      throw new Error(error.message);
-    }
+    await this.authService.register(userDto);
+    return 'OK';
   }
 }
