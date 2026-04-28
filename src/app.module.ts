@@ -2,8 +2,9 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './core/core.module';
 import { RefreshTokenModule } from './modules/refresh-token/refresh-token.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
-  imports: [CoreModule, AuthModule, RefreshTokenModule],
+  imports: [CoreModule, UserModule, AuthModule, RefreshTokenModule],
 })
 export class AppModule {}
