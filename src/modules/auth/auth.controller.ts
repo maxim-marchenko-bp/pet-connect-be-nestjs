@@ -16,6 +16,6 @@ export class AuthController {
   @UsePipes(ValidationPipe)
   async register(@Body() userDto: CreateUserDto) {
     await this.authService.register(userDto);
-    return 'OK';
+    return { message: 'User successfully registered' };
   }
 }
