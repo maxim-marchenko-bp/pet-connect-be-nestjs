@@ -64,6 +64,10 @@ export class RefreshTokenService {
     return this.refreshTokenRepository.delete({ id });
   }
 
+  deleteTokenByUserId(userId: number) {
+    return this.refreshTokenRepository.delete({ userId });
+  }
+
   generateRefreshToken(): string {
     return crypto.randomBytes(64).toString('hex');
   }

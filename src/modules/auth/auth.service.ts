@@ -63,4 +63,9 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+
+  async signOut(userId: number) {
+    await this.refreshTokenService.deleteTokenByUserId(userId);
+    return { accessToken: '', refreshToken: '' };
+  }
 }

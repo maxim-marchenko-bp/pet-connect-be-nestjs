@@ -28,7 +28,7 @@ export class CookieInterceptor implements NestInterceptor {
       map((data) => {
         const cookies = data.cookies ?? {};
 
-        if (cookieName && cookies[cookieName]) {
+        if (cookieName) {
           const ttlDays = Number(
             this.configService.get<string>('COOKIE_TTL_DAYS'),
           );
