@@ -9,12 +9,14 @@ import { User } from '../user/user.entity';
 import { Repository } from 'typeorm';
 import { PasswordHasher } from '../../core/auth/security/password-hasher.service';
 import { JwtService } from '@nestjs/jwt';
+import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly passwordHasher: PasswordHasher,
+    private readonly refreshTokenService: RefreshTokenService,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -55,8 +57,10 @@ export class AuthService {
       throw new UnauthorizedException('Something went wrong');
     }
 
-    const token = this.jwtService.sign({ sub: user.id });
+    const accessToken = this.jwtService.sign({ sub: user.id });
+    const refreshToken = this.refreshTokenService.generateRefreshToken();
+    await this.refreshTokenService.save(refreshToken, user.id);
 
-    return { token };
+    return { accessToken, refreshToken };
   }
 }

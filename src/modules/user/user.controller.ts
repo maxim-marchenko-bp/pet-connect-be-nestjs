@@ -8,6 +8,6 @@ export class UserController {
 
   @Get('me')
   getCurrentUser(@User('sub') userId: number) {
-    return this.userService.getCurrentPublicUser(userId);
+    return this.userService.getCurrentPublicUserById(userId);
   }
 }
