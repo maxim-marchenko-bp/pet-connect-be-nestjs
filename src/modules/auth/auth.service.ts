@@ -55,7 +55,7 @@ export class AuthService {
       throw new UnauthorizedException('Something went wrong');
     }
 
-    const token = this.jwtService.sign({ userId: user.id });
+    const token = this.jwtService.sign({ sub: user.id });
 
     return { token };
   }

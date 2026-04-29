@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
+import { toPublicUser } from '../../shared/utils/to-public-user';
 
 @Injectable()
 export class UserService {
@@ -9,7 +10,12 @@ export class UserService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
-  getCurrentUser(authToken: string) {
-    return authToken;
+  async getCurrentPublicUser(id: number) {
+    try {
+      const user = await this.userRepository.findOne({ where: { id } });
+      return toPublicUser(user);
+    } catch (error) {
+      throw new UnauthorizedException(error);
+    }
   }
 }
