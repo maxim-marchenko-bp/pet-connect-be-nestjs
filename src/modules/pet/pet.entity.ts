@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToMany, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
-import { PetType } from '../pet-type.entity';
+import { PetType } from '../pet-type/pet-type.entity';
 import { User } from '../user/user.entity';
 
 @Entity()

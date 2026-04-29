@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../modules/user/user.entity';
 import { Pet } from '../modules/pet/pet.entity';
-import { PetType } from '../modules/pet-type.entity';
+import { PetType } from '../modules/pet-type/pet-type.entity';
 import { RefreshToken } from '../modules/refresh-token/refresh-token.entity';
 
 @Module({

@@ -7,7 +7,7 @@ import { RegisterUserDto } from '../user/dto/register-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/user.entity';
 import { Repository } from 'typeorm';
-import { PasswordHasher } from '../../shared/security/password-hasher.service';
+import { PasswordHasher } from '../../core/auth/security/password-hasher.service';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
