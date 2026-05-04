@@ -1,5 +1,8 @@
 import { GenericFilter } from '../../../shared/types/generic-filter';
 
-export class UserFilter extends GenericFilter {
-  dateOfBirth: Date;
+export interface UserFilter {
+  dateOfBirthFrom: Date;
+  dateOfBirthTo: Date;
 }
+
+export type UserListFilter = UserFilter & GenericFilter;

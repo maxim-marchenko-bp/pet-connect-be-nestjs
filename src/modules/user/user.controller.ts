@@ -8,7 +8,7 @@ import {
 import { UserService } from './user.service';
 import { AuthUser } from '../../core/auth/decorators/auth-user.decorator';
 import { Public } from '../../core/auth/decorators/public.decorator';
-import { UserFilter } from './types/user-filter';
+import { UserListFilter } from './types/user-filter';
 
 @Controller('users')
 export class UserController {
@@ -22,7 +22,7 @@ export class UserController {
   @Public()
   @UsePipes(new ValidationPipe({ transform: true }))
   @Get('list')
-  async getUsersList(@Query() query: UserFilter) {
+  async getUsersList(@Query() query: UserListFilter) {
     return this.userService.getFilteredUsersList(query);
   }
 }
