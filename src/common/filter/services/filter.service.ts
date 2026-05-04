@@ -5,8 +5,15 @@ import {
   FilterConfigType,
 } from '../types/filter-config.type';
 import { GenericFilter } from '../../../shared/types/generic-filter';
-import { ILike, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Between, ILike, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { isDefined } from 'class-validator';
+
+type GroupedFiltersMapKey<FilteredEntity> = keyof FilteredEntity;
+type GroupedFiltersMapValue = (FilterConfig & { filterField: string })[];
+type WhereConditions<FilteredEntity> = Record<keyof FilteredEntity, any>;
+type FilterFieldDescription<FilteredEntity> =
+  | Extract<keyof FilteredEntity, string>
+  | FilterConfig;
 
 @Injectable()
 export class FilterService<Filter, FilteredEntity> {
@@ -23,36 +30,41 @@ export class FilterService<Filter, FilteredEntity> {
       skip: (filters.page - 1) * filters.pageSize,
       take: filters.pageSize,
     };
-    const whereConditions = {} as Record<keyof FilteredEntity, any>;
+    const whereConditions = {} as WhereConditions<FilteredEntity>;
+    const groupedFiltersMap = new Map<
+      GroupedFiltersMapKey<FilteredEntity>,
+      GroupedFiltersMapValue
+    >();
 
     Object.entries(filterConfig).forEach(
       ([filterField, filterFieldDescription]: [
         string,
-        Extract<keyof FilteredEntity, string> | FilterConfig,
+        FilterFieldDescription<FilteredEntity>,
       ]) => {
-        const { field, operator, type } = this.toFilterConfig(
+        const normalizedFilterConfig = this.toFilterConfig(
           filterFieldDescription,
         );
-        const value = this.parseValue(filters[filterField], type);
-        if (operator === 'eq') {
-          whereConditions[field] = value;
-        }
-        if (operator === 'gte' && isDefined(value)) {
-          whereConditions[field] = MoreThanOrEqual(value);
-        }
-        if (operator === 'lte' && isDefined(value)) {
-          whereConditions[field] = LessThanOrEqual(value);
-        }
+        this.groupFilters(
+          groupedFiltersMap,
+          normalizedFilterConfig,
+          filterField,
+        );
+        this.applyWhereConditions(
+          filters,
+          whereConditions,
+          filterField,
+          normalizedFilterConfig,
+        );
       },
     );
 
-    const where =
-      searchFields.length && filters.searchTerm
-        ? searchFields.map((searchField) => ({
-            ...whereConditions,
-            [searchField]: ILike(`%${filters.searchTerm}%`),
-          }))
-        : [whereConditions];
+    this.applyRangeFilters(groupedFiltersMap, filters, whereConditions);
+
+    const where = this.buildWhereCondition(
+      searchFields,
+      filters,
+      whereConditions,
+    );
 
     return {
       ...paginatedFilters,
@@ -78,9 +90,7 @@ export class FilterService<Filter, FilteredEntity> {
   }
 
   private toFilterConfig(
-    filterFieldDescription:
-      | Extract<keyof FilteredEntity, string>
-      | FilterConfig<FilteredEntity>,
+    filterFieldDescription: FilterFieldDescription<FilteredEntity>,
   ): FilterConfig<FilteredEntity> {
     return typeof filterFieldDescription === 'string'
       ? {
@@ -89,5 +99,83 @@ export class FilterService<Filter, FilteredEntity> {
           type: 'string',
         }
       : filterFieldDescription;
+  }
+
+  private applyRangeFilters(
+    groupedFiltersMap: Map<
+      GroupedFiltersMapKey<FilteredEntity>,
+      GroupedFiltersMapValue
+    >,
+    filters: Filter & GenericFilter,
+    whereConditions: WhereConditions<FilteredEntity>,
+  ) {
+    groupedFiltersMap.forEach((value, key) => {
+      const lteField = value.find((f) => f.operator === 'lte');
+      const gteField = value.find((f) => f.operator === 'gte');
+      const hasLte = !!(lteField && filters[lteField.filterField]);
+      const hasGte = !!(gteField && filters[gteField.filterField]);
+      const hasBetween = hasLte && hasGte;
+      if (hasBetween) {
+        const start = filters[gteField.filterField];
+        const end = filters[lteField.filterField];
+        whereConditions[key] = Between(start, end);
+      } else if (hasGte && !hasLte) {
+        whereConditions[key] = MoreThanOrEqual(filters[gteField.filterField]);
+      } else if (hasLte && !hasGte) {
+        whereConditions[key] = LessThanOrEqual(filters[lteField.filterField]);
+      }
+    });
+  }
+
+  private groupFilters(
+    groupedFiltersMap: Map<
+      GroupedFiltersMapKey<FilteredEntity>,
+      GroupedFiltersMapValue
+    >,
+    normalizedFilterConfig: FilterConfig<FilteredEntity>,
+    filterField: string,
+  ) {
+    const { field } = normalizedFilterConfig;
+    if (groupedFiltersMap.has(field)) {
+      groupedFiltersMap
+        .get(field)
+        .push({ ...normalizedFilterConfig, filterField });
+    } else {
+      groupedFiltersMap.set(field, [
+        { ...normalizedFilterConfig, filterField },
+      ]);
+    }
+  }
+
+  private applyWhereConditions(
+    filters: Filter & GenericFilter,
+    whereConditions: WhereConditions<FilteredEntity>,
+    filterField: string,
+    normalizedFilterConfig: FilterConfig<FilteredEntity>,
+  ) {
+    const { field, operator, type } = normalizedFilterConfig;
+    const value = this.parseValue(filters[filterField], type);
+    if (operator === 'eq') {
+      whereConditions[field] = value;
+    }
+    if (operator === 'gte' && isDefined(value)) {
+      whereConditions[field] = MoreThanOrEqual(value);
+    }
+    if (operator === 'lte' && isDefined(value)) {
+      whereConditions[field] = LessThanOrEqual(value);
+    }
+  }
+
+  private buildWhereCondition(
+    searchFields: (keyof FilteredEntity)[],
+    filters: Filter & GenericFilter,
+    whereConditions: WhereConditions<FilteredEntity>,
+  ) {
+    return searchFields.length && filters.searchTerm
+      ? searchFields.map((searchField) => ({
+          ...whereConditions,
+          [searchField]: ILike(`%${filters.searchTerm}%`),
+        }))
+      : [whereConditions];
   }
 }
