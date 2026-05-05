@@ -13,9 +13,8 @@ import { AuthUser } from '../../core/auth/decorators/auth-user.decorator';
 import { UserListFilter } from './types/user-filter';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Public } from '../../core/auth/decorators/public.decorator';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
-@Public()
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -48,5 +47,13 @@ export class UserController {
   @Delete(':id')
   deleteUser(@Param('id') id: number) {
     return this.userService.deleteUser(id);
+  }
+
+  @Post('change-password')
+  changePassword(
+    @AuthUser('sub') id: number,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(id, changePasswordDto);
   }
 }

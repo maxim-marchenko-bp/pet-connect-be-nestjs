@@ -7,7 +7,7 @@ import { RegisterUserDto } from '../user/dto/register-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/user.entity';
 import { Repository } from 'typeorm';
-import { PasswordHasher } from '../../core/auth/security/password-hasher.service';
+import { PasswordHasherService } from '../../core/auth/security/password-hasher.service';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 
@@ -15,7 +15,7 @@ import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 export class AuthService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    private readonly passwordHasher: PasswordHasher,
+    private readonly passwordHasher: PasswordHasherService,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly jwtService: JwtService,
   ) {}
@@ -45,7 +45,7 @@ export class AuthService {
       email: authCredentials.email,
     });
     if (!user) {
-      throw new UnauthorizedException('Something went wrong');
+      throw new UnauthorizedException('Unauthorized');
     }
 
     const isPasswordOk = await this.passwordHasher.comparePassword(
@@ -54,7 +54,7 @@ export class AuthService {
     );
 
     if (!isPasswordOk) {
-      throw new UnauthorizedException('Something went wrong');
+      throw new UnauthorizedException('Unauthorized');
     }
 
     const accessToken = this.jwtService.sign({ sub: user.id });

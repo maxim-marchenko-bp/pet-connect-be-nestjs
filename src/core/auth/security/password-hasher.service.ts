@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { IPasswordHasher } from './password-hasher.interface';
 
 @Injectable()
-export class PasswordHasher implements IPasswordHasher {
+export class PasswordHasherService implements IPasswordHasher {
   hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 10);
   }

@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
@@ -9,12 +14,15 @@ import { ListFilterConfigMap } from '../../common/list-filter/types/list-filter-
 import { UserPublic } from './types/user-public.type';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { PasswordHasherService } from '../../core/auth/security/password-hasher.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly filterService: ListFilterService<UserFilter, UserPublic>,
+    private readonly passwordHasherService: PasswordHasherService,
   ) {}
 
   async getCurrentPublicUserById(id: number) {
@@ -69,5 +77,32 @@ export class UserService {
 
   async deleteUser(id: number) {
     return this.userRepository.delete({ id });
+  }
+
+  async changePassword(
+    id: number,
+    { currentPassword, newPassword }: ChangePasswordDto,
+  ) {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isPasswordMatches = await this.passwordHasherService.comparePassword(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordMatches) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    const newPasswordHash =
+      await this.passwordHasherService.hashPassword(newPassword);
+
+    await this.userRepository.update({ id }, { password: newPasswordHash });
+
+    return HttpStatus.OK;
   }
 }

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PasswordHasher } from './password-hasher.service';
+import { PasswordHasherService } from './password-hasher.service';
 
 @Module({
-  providers: [PasswordHasher],
-  exports: [PasswordHasher],
+  providers: [PasswordHasherService],
+  exports: [PasswordHasherService],
 })
 export class SecurityModule {}
