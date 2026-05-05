@@ -6,15 +6,15 @@ import {
   Post,
   Query,
   UseFilters,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthUser } from '../../core/auth/decorators/auth-user.decorator';
 import { UserListFilter } from './types/user-filter';
 import { CreateUserDto } from './dto/create-user.dto';
 import { DatabaseExceptionFilter } from '../../common/filters/database-exception.filter';
+import { Public } from '../../core/auth/decorators/public.decorator';
 
+@Public()
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -24,7 +24,6 @@ export class UserController {
     return this.userService.getCurrentPublicUserById(userId);
   }
 
-  @UsePipes(new ValidationPipe({ transform: true }))
   @Get('list')
   async getUsersList(@Query() query: UserListFilter) {
     return this.userService.getFilteredUsersList(query);
@@ -35,7 +34,6 @@ export class UserController {
     return this.userService.getUserById(id);
   }
 
-  @UsePipes(new ValidationPipe({ transform: true }))
   @UseFilters(DatabaseExceptionFilter)
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
