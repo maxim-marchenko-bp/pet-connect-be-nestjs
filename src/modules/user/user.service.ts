@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
@@ -20,7 +20,7 @@ export class UserService {
       const user = await this.userRepository.findOne({ where: { id } });
       return toPublicUser(user);
     } catch (error) {
-      throw new UnauthorizedException(error);
+      throw new InternalServerErrorException(error);
     }
   }
 
@@ -52,7 +52,15 @@ export class UserService {
         await this.userRepository.findAndCount(normalizedFilters);
       return { data, totalCount };
     } catch (error) {
-      throw new Error(error);
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  async getUserById(id: number) {
+    try {
+      return await this.userRepository.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException(error);
     }
   }
 }
