@@ -8,6 +8,7 @@ import { ListFilterService } from '../../common/list-filter/services/list-filter
 import { ListFilterConfigMap } from '../../common/list-filter/types/list-filter-config.type';
 import { UserPublic } from './types/user-public.type';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -50,12 +51,23 @@ export class UserService {
   }
 
   async getUserById(id: number) {
-    return await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({ where: { id } });
+    return toPublicUser(user);
   }
 
   async createUser(createUserDto: CreateUserDto) {
     const user = this.userRepository.create(createUserDto);
     const savedUser = await this.userRepository.save(user);
     return toPublicUser(savedUser);
+  }
+
+  async updateUser(id: number, updateUserDto: UpdateUserDto) {
+    await this.userRepository.update({ id }, updateUserDto);
+    const updatedUser = await this.userRepository.findOne({ where: { id } });
+    return toPublicUser(updatedUser);
+  }
+
+  async deleteUser(id: number) {
+    return this.userRepository.delete({ id });
   }
 }

@@ -1,18 +1,17 @@
 ## User
 
-- [ ] router.get('/', getAllUserProfiles);
 - [x] router.get('/list', getUserProfilesList)
 - [x] router.get('/me', getCurrentUser);
 - [ ] router.post('/me/change-password', changeUserPassword);
 - [ ] router.get('/join-pet', joinPetById);
 - [x] router.post('/', validate(createUserSchema), addUser);
-- [ ] router.put('/:id', validate(updateUserSchema), updateUserInfo);
+- [x] router.put('/:id', validate(updateUserSchema), updateUserInfo);
 - [x] router.get('/:id', getUserById);
 - [ ] router.post('/:id/assign-pets', assignPetsToUser);
 - [ ] router.post('/:id/add-pets', addPetsToUser);
 - [ ] router.post('/:id/remove-pets', removePetsFromUser);
 - [ ] router.get('/:id/pets/list', getPetsByUserId);
-- [ ] router.delete('/:id', deleteUserProfileById);
+- [x] router.delete('/:id', deleteUserProfileById);
 
 ## Pet
 
