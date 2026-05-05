@@ -49,7 +49,7 @@ export class UserController {
     return this.userService.deleteUser(id);
   }
 
-  @Post('change-password')
+  @Post('me/change-password')
   changePassword(
     @AuthUser('sub') id: number,
     @Body() changePasswordDto: ChangePasswordDto,

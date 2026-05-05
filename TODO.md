@@ -2,7 +2,7 @@
 
 - [x] router.get('/list', getUserProfilesList)
 - [x] router.get('/me', getCurrentUser);
-- [ ] router.post('/me/change-password', changeUserPassword);
+- [x] router.post('/me/change-password', changeUserPassword);
 - [ ] router.get('/join-pet', joinPetById);
 - [x] router.post('/', validate(createUserSchema), addUser);
 - [x] router.put('/:id', validate(updateUserSchema), updateUserInfo);
