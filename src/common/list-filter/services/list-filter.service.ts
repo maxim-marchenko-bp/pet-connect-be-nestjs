@@ -1,29 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import {
-  FilterConfig,
-  FilterConfigMap,
-  FilterConfigType,
-} from '../types/filter-config.type';
+  ListFilterConfig,
+  ListFilterConfigMap,
+  ListFilterConfigType,
+} from '../types/list-filter-config.type';
 import { GenericFilter } from '../../../shared/types/generic-filter';
 import { Between, ILike, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { isDefined } from 'class-validator';
 
 type GroupedFiltersMapKey<FilteredEntity> = keyof FilteredEntity;
-type GroupedFiltersMapValue = (FilterConfig & { filterField: string })[];
+type GroupedFiltersMapValue = (ListFilterConfig & { filterField: string })[];
 type WhereConditions<FilteredEntity> = Record<keyof FilteredEntity, any>;
 type FilterFieldDescription<FilteredEntity> =
   | Extract<keyof FilteredEntity, string>
-  | FilterConfig;
+  | ListFilterConfig;
 
 @Injectable()
-export class FilterService<Filter, FilteredEntity> {
+export class ListFilterService<ListFilter, FilteredEntity> {
   generateSearchFields(...args: (keyof FilteredEntity)[]) {
     return args;
   }
 
   normalizeFilters(
-    filters: Filter & GenericFilter,
-    filterConfig: FilterConfigMap<Filter>,
+    filters: ListFilter & GenericFilter,
+    filterConfig: ListFilterConfigMap<ListFilter>,
     searchFields: (keyof FilteredEntity)[],
   ) {
     const paginatedFilters = {
@@ -72,7 +72,7 @@ export class FilterService<Filter, FilteredEntity> {
     };
   }
 
-  private parseValue(value: unknown, type: FilterConfigType) {
+  private parseValue(value: unknown, type: ListFilterConfigType) {
     if (value === null || value === undefined || value === '') {
       return null;
     }
@@ -91,7 +91,7 @@ export class FilterService<Filter, FilteredEntity> {
 
   private toFilterConfig(
     filterFieldDescription: FilterFieldDescription<FilteredEntity>,
-  ): FilterConfig<FilteredEntity> {
+  ): ListFilterConfig<FilteredEntity> {
     return typeof filterFieldDescription === 'string'
       ? {
           field: filterFieldDescription,
@@ -106,7 +106,7 @@ export class FilterService<Filter, FilteredEntity> {
       GroupedFiltersMapKey<FilteredEntity>,
       GroupedFiltersMapValue
     >,
-    filters: Filter & GenericFilter,
+    filters: ListFilter & GenericFilter,
     whereConditions: WhereConditions<FilteredEntity>,
   ) {
     groupedFiltersMap.forEach((value, key) => {
@@ -128,7 +128,7 @@ export class FilterService<Filter, FilteredEntity> {
       GroupedFiltersMapKey<FilteredEntity>,
       GroupedFiltersMapValue
     >,
-    normalizedFilterConfig: FilterConfig<FilteredEntity>,
+    normalizedFilterConfig: ListFilterConfig<FilteredEntity>,
     filterField: string,
   ) {
     const { field } = normalizedFilterConfig;
@@ -144,10 +144,10 @@ export class FilterService<Filter, FilteredEntity> {
   }
 
   private applyWhereConditions(
-    filters: Filter & GenericFilter,
+    filters: ListFilter & GenericFilter,
     whereConditions: WhereConditions<FilteredEntity>,
     filterField: string,
-    normalizedFilterConfig: FilterConfig<FilteredEntity>,
+    normalizedFilterConfig: ListFilterConfig<FilteredEntity>,
   ) {
     const { field, operator, type } = normalizedFilterConfig;
     const value = this.parseValue(filters[filterField], type);
@@ -164,7 +164,7 @@ export class FilterService<Filter, FilteredEntity> {
 
   private buildWhereCondition(
     searchFields: (keyof FilteredEntity)[],
-    filters: Filter & GenericFilter,
+    filters: ListFilter & GenericFilter,
     whereConditions: WhereConditions<FilteredEntity>,
   ) {
     return searchFields.length && filters.searchTerm
