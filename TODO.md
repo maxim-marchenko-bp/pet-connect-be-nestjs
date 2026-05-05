@@ -7,7 +7,7 @@
 - [ ] router.get('/join-pet', joinPetById);
 - [ ] router.post('/', validate(createUserSchema), addUser);
 - [ ] router.put('/:id', validate(updateUserSchema), updateUserInfo);
-- [ ] router.get('/:id', getUserById);
+- [x] router.get('/:id', getUserById);
 - [ ] router.post('/:id/assign-pets', assignPetsToUser);
 - [ ] router.post('/:id/add-pets', addPetsToUser);
 - [ ] router.post('/:id/remove-pets', removePetsFromUser);
