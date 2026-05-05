@@ -1,7 +1,7 @@
 ## User
 
 - [ ] router.get('/', getAllUserProfiles);
-- [ ] router.get('/list', getUserProfilesList)
+- [x] router.get('/list', getUserProfilesList)
 - [ ] router.get('/me', getCurrentUser);
 - [ ] router.post('/me/change-password', changeUserPassword);
 - [ ] router.get('/join-pet', joinPetById);
