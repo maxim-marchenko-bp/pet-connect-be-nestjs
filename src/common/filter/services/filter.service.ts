@@ -119,10 +119,6 @@ export class FilterService<Filter, FilteredEntity> {
         const start = filters[gteField.filterField];
         const end = filters[lteField.filterField];
         whereConditions[key] = Between(start, end);
-      } else if (hasGte && !hasLte) {
-        whereConditions[key] = MoreThanOrEqual(filters[gteField.filterField]);
-      } else if (hasLte && !hasGte) {
-        whereConditions[key] = LessThanOrEqual(filters[lteField.filterField]);
       }
     });
   }
