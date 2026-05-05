@@ -5,7 +5,7 @@
 - [x] router.get('/me', getCurrentUser);
 - [ ] router.post('/me/change-password', changeUserPassword);
 - [ ] router.get('/join-pet', joinPetById);
-- [ ] router.post('/', validate(createUserSchema), addUser);
+- [x] router.post('/', validate(createUserSchema), addUser);
 - [ ] router.put('/:id', validate(updateUserSchema), updateUserInfo);
 - [x] router.get('/:id', getUserById);
 - [ ] router.post('/:id/assign-pets', assignPetsToUser);
