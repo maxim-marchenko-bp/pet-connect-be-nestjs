@@ -12,9 +12,7 @@ import { AuthUser } from '../../core/auth/decorators/auth-user.decorator';
 import { UserListFilter } from './types/user-filter';
 import { CreateUserDto } from './dto/create-user.dto';
 import { DatabaseExceptionFilter } from '../../common/filters/database-exception.filter';
-import { Public } from '../../core/auth/decorators/public.decorator';
 
-@Public()
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
