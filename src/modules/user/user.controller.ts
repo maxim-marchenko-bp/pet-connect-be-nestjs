@@ -1,17 +1,8 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  UseFilters,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthUser } from '../../core/auth/decorators/auth-user.decorator';
 import { UserListFilter } from './types/user-filter';
 import { CreateUserDto } from './dto/create-user.dto';
-import { DatabaseExceptionFilter } from '../../common/filters/database-exception.filter';
 
 @Controller('users')
 export class UserController {
@@ -32,7 +23,6 @@ export class UserController {
     return this.userService.getUserById(id);
   }
 
-  @UseFilters(DatabaseExceptionFilter)
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
     return this.userService.createUser(createUserDto);
