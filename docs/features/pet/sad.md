@@ -159,7 +159,146 @@ sequenceDiagram
     Pet-->>User: confirms the created pet (no co-owner list)
 ```
 
-**Critical flow 2: Remove a co-owner under the no-orphan invariant (US-08 / AC-10 / AC-10b)**
+**Critical flow 3: Register a pet — validation & cross-context errors (US-01 / AC-02 / AC-03)**
+
+```mermaid
+sequenceDiagram
+    actor User as Authenticated user
+    participant Pet as Pet service
+    participant PT as Pet-type service
+    participant DB as PostgreSQL
+    User->>Pet: submits new pet details
+    alt name empty/whitespace-only, too long, or date of birth in the future
+        Pet-->>User: rejects — names the invalid field
+    else pet type does not exist
+        Pet->>PT: does this pet type exist?
+        PT-->>Pet: no
+        Pet-->>User: rejects — pet type unknown
+    end
+    Note over Pet,DB: no pet is persisted on either error path
+```
+
+**Critical flow 4: View a pet (US-02 / AC-04 / AC-12)**
+
+```mermaid
+sequenceDiagram
+    actor User as Authenticated user
+    participant Pet as Pet service
+    participant DB as PostgreSQL
+    User->>Pet: requests a pet by id
+    Pet->>DB: load pet by id
+    DB-->>Pet: pet found / not found
+    alt pet exists
+        Pet-->>User: confirms name, date of birth, pet type (no co-owner list)
+    else pet does not exist
+        Pet-->>User: not found — no such pet exists
+    end
+```
+
+**Critical flow 5: Browse pets (US-03 / AC-05)**
+
+```mermaid
+sequenceDiagram
+    actor User as Authenticated user
+    participant Pet as Pet service
+    participant DB as PostgreSQL
+    User->>Pet: requests a page of pets
+    Pet->>DB: query pets (bounded page size, stable default ordering)
+    DB-->>Pet: page of pets
+    Pet-->>User: confirms the page (never includes co-owner credentials)
+```
+
+**Critical flow 6: Update a pet (US-04 / AC-06 / AC-06b / AC-03 / AC-12)**
+
+```mermaid
+sequenceDiagram
+    actor User as Authenticated user
+    participant Pet as Pet service
+    participant PT as Pet-type service
+    participant DB as PostgreSQL
+    User->>Pet: submits full replacement for a pet
+    Pet->>DB: load pet by id
+    DB-->>Pet: pet found / not found
+    alt pet does not exist
+        Pet-->>User: not found — no such pet exists
+    else caller is not a Co-owner
+        Pet-->>User: denies the change — pet unchanged
+    else caller is a Co-owner
+        Pet->>PT: does the referenced pet type exist?
+        PT-->>Pet: yes / no
+        alt pet type does not exist
+            Pet-->>User: rejects — pet type unknown
+        else pet type exists
+            Pet->>DB: persist the replacement
+            DB-->>Pet: saved
+            Pet-->>User: confirms the updated pet (no co-owner list)
+        end
+    end
+```
+
+**Critical flow 7: Delete a pet (US-05 / AC-07 / AC-07b / AC-12)**
+
+```mermaid
+sequenceDiagram
+    actor User as Authenticated user
+    participant Pet as Pet service
+    participant DB as PostgreSQL
+    User->>Pet: requests to delete a pet
+    Pet->>DB: load pet by id
+    DB-->>Pet: pet found / not found
+    alt pet does not exist
+        Pet-->>User: not found — no such pet exists
+    else caller is not a Co-owner
+        Pet-->>User: denies the deletion — pet remains
+    else caller is a Co-owner
+        Pet->>DB: delete pet and clear membership links
+        DB-->>Pet: deleted
+        Pet-->>User: confirms the pet is removed
+    end
+```
+
+**Critical flow 8: View a pet's co-owners (US-06 / AC-08)**
+
+```mermaid
+sequenceDiagram
+    actor User as Authenticated user
+    participant Pet as Pet service
+    participant DB as PostgreSQL
+    User->>Pet: requests a pet's co-owners
+    Pet->>DB: load pet's membership
+    DB-->>Pet: co-owner identities
+    Pet-->>User: confirms each co-owner's minimal identity (never credentials)
+```
+
+**Critical flow 9: Add a co-owner (US-07 / AC-09 / AC-09b / AC-09c / AC-12)**
+
+```mermaid
+sequenceDiagram
+    actor User as Co-owner
+    participant Pet as Pet service
+    participant Usr as User service
+    participant DB as PostgreSQL
+    User->>Pet: adds a target user as co-owner of a pet
+    Pet->>DB: load pet and its membership
+    DB-->>Pet: pet found / not found
+    alt pet does not exist
+        Pet-->>User: not found — no such pet exists
+    else caller is not a Co-owner
+        Pet-->>User: denies the change — membership unchanged
+    else caller is a Co-owner
+        Pet->>Usr: does the target user exist?
+        Usr-->>Pet: yes
+        alt target user already a Co-owner
+            Pet-->>User: confirms membership unchanged (idempotent)
+        else target user not yet a Co-owner
+            Pet->>DB: extend membership with target user
+            DB-->>Pet: saved
+            Pet-->>User: confirms the updated membership
+        end
+    end
+```
+
+**Critical flow 2: Remove a co-owner under the no-orphan invariant — concurrent race (US-08 / AC-10 / AC-10b)**
 
 ```mermaid
 sequenceDiagram
@@ -169,13 +308,78 @@ sequenceDiagram
     User->>Pet: remove a co-owner from the pet
     Pet->>DB: begin transaction, write-lock the pet and its membership
     DB-->>Pet: current membership (locked)
-    Pet->>Pet: verify caller is a co-owner; verify more than one owner remains
+    Pet->>Pet: verify caller is a co-owner and more than one owner remains
     Pet->>DB: update membership and commit
     DB-->>Pet: committed
     Pet-->>User: confirms the updated membership
 ```
 
-The remaining flows (view, list, update, add-co-owner, and each error / authorization / not-found branch per AC-12) are seeded here and covered exhaustively by the `sequences` stage against every §5 AC.
+**Critical flow 10: Remove a co-owner — single request (US-08 / AC-10 / AC-11 / AC-11b / AC-11c / AC-12)**
+
+```mermaid
+sequenceDiagram
+    actor User as Co-owner
+    participant Pet as Pet service
+    participant DB as PostgreSQL
+    User->>Pet: removes a target co-owner from a pet
+    Pet->>DB: load pet and its membership
+    DB-->>Pet: pet found / not found
+    alt pet does not exist
+        Pet-->>User: not found — no such pet exists
+    else caller is not a Co-owner
+        Pet-->>User: denies the change — membership unchanged
+    else target user is not a Co-owner of the pet
+        Pet-->>User: blocks the removal — target is not a co-owner
+    else removing the target would leave zero Co-owners
+        Pet-->>User: blocks the removal — a pet must keep at least one owner
+    else removal leaves at least one Co-owner remaining
+        Pet->>DB: update membership to exclude the target
+        DB-->>Pet: saved
+        Pet-->>User: confirms the updated membership
+    end
+    Note over Pet: covers removing another Co-owner (AC-11) and self-removal / leave (AC-11c) under the same rule set
+```
+
+Flow 2 covers the concurrent-removal race (AC-10b) specifically; flow 10 covers the single-request remove-co-owner path (AC-10, AC-11, AC-11b, AC-11c). AC-12's not-found-before-authorization ordering is shown explicitly in flows 4, 6, 9, and 10; delete (flow 7) applies the same centralized `assertCoOwner` check (ADR-0001), so the pattern is not redrawn a further time.
+
+**Use-case coverage (§4 → flow):**
+
+| User story | Flow(s) |
+|---|---|
+| US-01 Register a pet | Flow 1 (happy), Flow 3 (validation & cross-context errors) |
+| US-02 View a pet | Flow 4 |
+| US-03 Browse pets | Flow 5 |
+| US-04 Update a pet | Flow 6 |
+| US-05 Remove a pet | Flow 7 |
+| US-06 See a pet's co-owners | Flow 8 |
+| US-07 Add a co-owner | Flow 9 |
+| US-08 Remove a co-owner | Flow 2 (concurrent race), Flow 10 (single request) |
+
+**Acceptance-criteria coverage (§5 → flow / branch):**
+
+| AC | Shown by |
+|---|---|
+| AC-01 | Flow 1, happy path |
+| AC-02 | Flow 3, `alt` branch (invalid input) |
+| AC-03 | Flow 3, `alt` branch (create); Flow 6, `alt` branch (update) |
+| AC-04 | Flow 4, `alt` branch (pet exists) |
+| AC-05 | Flow 5, happy path |
+| AC-06 | Flow 6, `alt` branch (not a Co-owner) |
+| AC-06b | Flow 6, `alt` branch (Co-owner + pet type exists) |
+| AC-07 | Flow 7, `alt` branch (not a Co-owner) |
+| AC-07b | Flow 7, `alt` branch (Co-owner) |
+| AC-08 | Flow 8, happy path |
+| AC-09 | Flow 9, `alt` branch (not a Co-owner) |
+| AC-09b | Flow 9, `alt` branch (target not yet a member) |
+| AC-09c | Flow 9, `alt` branch (target already a member) |
+| AC-10 | Flow 10, `alt` branch (would leave zero owners) |
+| AC-10b | Flow 2, happy path (concurrent race, pessimistic lock) |
+| AC-11 | Flow 10, `alt` branch (removal leaves ≥1 owner) |
+| AC-11b | Flow 10, `alt` branch (target not a member) |
+| AC-11c | Flow 10, `alt` branch (removal leaves ≥1 owner — self-removal variant, see the flow's closing note) |
+| AC-12 | Flow 4, Flow 6, Flow 9, Flow 10, each `alt` branch (pet does not exist); the same centralized `assertCoOwner` check (ADR-0001) applies identically to Flow 7 delete |
+
+Every §4 user story maps to ≥1 flow and every §5 acceptance criterion maps to a flow or an `alt`/`else` branch — no runtime-observable AC is left uncovered.
 
 ## 7. Deployment view
 
