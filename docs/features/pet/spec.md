@@ -233,6 +233,62 @@ Traceability / risk context — surfaced in the ideation failure-mode pass and c
 - **Unauthorized write attempts blocked** — baseline: TBD (no pet endpoints exist to measure; establish via negative tests at implementation), target: 100% of non-member write attempts denied.
 - **Sensitive-field exposure** — baseline: unknown (no serialization exists yet), target: 0 responses exposing a co-owner's password/credentials, verified by response-shape tests.
 
+## Test plan
+
+Every acceptance criterion below maps to a named test; error/authorization criteria each get their own dedicated row. Levels: **unit** (pure rule, no I/O), **integration** (the module against a real throwaway database), **e2e** (the whole app booted, not used this iteration — see rationale below).
+
+### AC coverage
+
+| AC (§5) | Test name (intent-based) | Level | Expected outcome |
+|---|---|---|---|
+| AC-01 — create, happy path | valid new-pet details create the pet and its creator becomes first Co-owner | unit (name/date-of-birth validators accept) + integration (pet persisted, creator added to membership, response has name/date-of-birth/pet-type and no co-owner list) | pet created, confirmed back without a co-owner list |
+| AC-02 — create, invalid input | empty/whitespace/too-long name or a future date of birth is rejected before anything is saved | unit | creation blocked, nothing persisted, invalid field named in plain language |
+| AC-03 — create/update, unknown pet type | a pet or update referencing a non-existent pet type is rejected | integration (create path + update path) | operation blocked, pet type reported unknown |
+| AC-04 — view, happy path | viewing an existing pet returns its name, date of birth, and pet-type display name, no co-owner list | integration | pet details returned, no co-owner list embedded |
+| AC-05 — list, happy path | listing pets returns bounded pages with a stable default order and never a co-owner's credentials | integration | paged pet list returned, no credential fields |
+| AC-06 — update, authorization | a non-Co-owner attempting to update a pet is denied and the pet is unchanged | integration | update denied, pet unchanged (verified by re-reading the pet) |
+| AC-06b — update, happy path | a Co-owner's full-replacement update persists and is confirmed back | integration | pet replaced, confirmed back without a co-owner list |
+| AC-07 — delete, authorization | a non-Co-owner attempting to delete a pet is denied and the pet remains | integration | delete denied, pet still present |
+| AC-07b — delete, happy path | a Co-owner's delete removes the pet and clears its membership links | integration | pet and its membership rows gone |
+| AC-08 — view co-owners, happy path | viewing a pet's co-owners returns each identity without ever exposing a password/credential field | integration | co-owner identities returned, no credential fields |
+| AC-09 — add co-owner, authorization | a non-Co-owner attempting to add a co-owner is denied and membership is unchanged | integration | add denied, membership unchanged (verified by re-reading membership) |
+| AC-09b — add co-owner, happy path | a Co-owner adds a user who is not yet a member; membership extends | integration | membership extended, confirmed back |
+| AC-09c — add co-owner, idempotent | a Co-owner adds a user who is already a member; membership stays the same and the call still succeeds | integration | membership unchanged, success reported (no error) |
+| AC-10 — remove co-owner, domain invariant | the sole Co-owner cannot remove themself as the last owner | integration | removal blocked, "must keep at least one owner" told to the caller |
+| AC-10b — remove co-owner, domain invariant under concurrency | two Co-owners of a two-owner pet simultaneously remove each other; the pet keeps ≥1 owner | integration — dedicated concurrency test firing both removals ~simultaneously (e.g. via `Promise.all`) against a real throwaway database to exercise the pessimistic-lock transaction (ADR-0002) | invariant holds, pet never reaches zero owners |
+| AC-11 — remove co-owner, happy path | a Co-owner removes another Co-owner from a pet with ≥2 owners | integration | target removed, ≥1 owner remains, confirmed back |
+| AC-11b — remove co-owner, error (not a member) | removing a target who is not a Co-owner of the pet is blocked | integration | removal blocked, membership unchanged, target-not-a-co-owner message |
+| AC-11c — remove co-owner, happy path (self-removal) | a Co-owner removes themself from a pet with ≥2 owners | integration | caller removed, ≥1 owner remains, confirmed back |
+| AC-12 — non-existent pet | viewing, updating, deleting, or changing membership of a pet id that doesn't exist returns not-found, never disguised as a denial | integration — one test per route (view, update, delete, add-co-owner, remove-co-owner) | not-found response, no state change, same not-found shape for reads and writes |
+
+**Level-choice rationale (confirmed with the team):** AC-01/AC-02's validation rules are pure logic (name trim/length, date-of-birth ≤ today) and run as unit tests with no database; everything that requires a real row — a persisted pet, a membership set, a cross-context pet-type/user lookup — runs as integration against a throwaway database, including AC-01's persistence half. No e2e-through-HTTP test is included this iteration (integration against the service layer was judged sufficient coverage for a first pass); revisit if a routing/guard-wiring bug ships uncaught.
+
+### Edge cases / error paths
+
+- Malformed/non-numeric pet id in the route → not-found, same shape as AC-12 (framework-level parse, not a domain rule).
+- Name is exactly at the maximum length (boundary) → accepted (paired with AC-02's "exceeds max length" rejection).
+- Date of birth equal to today (server UTC date) → accepted (paired with AC-02's "later than today" rejection).
+- Add-co-owner target user id does not exist (no user with that id) → blocked, told the target user is unknown (implied by sad.md §6 flow 9's `Usr-->>Pet` existence check; not enumerated as its own spec AC — flag as a gap to confirm during `implement`).
+
+### Test data
+
+- Seed strategy: factories/fixtures for `user`, `pet_type`, `pet`, and the `user_pets` membership join, matching the shapes in [data-model.md](./data-model.md).
+- Integration dependency: an ephemeral real Postgres database (throwaway container) spun up for the suite — never a mocked datastore.
+- Cleanup boundary: per-test — each integration test seeds its own users/pet-type/pet rows and the suite resets state between tests so runs stay independent (required for the AC-10b concurrency test to be non-flaky).
+
+### NFR validation (load)
+
+- Write p95 ≤ 300 ms *(provisional, spec §6)* → scenario: sustained load against create/update/delete/membership-change routes for a fixed duration, assert p95 request latency ≤ 300 ms.
+- Read p95 ≤ 200 ms *(provisional, spec §6)* → scenario: sustained load against view/list/co-owners routes (list using its bounded default page size) for a fixed duration, assert p95 request latency ≤ 200 ms.
+- Tool: the load tool already in the repo, or e.g. k6 or Locust — not selected yet (repo has none configured); pick one before this scenario is run for real.
+- Note: these targets are provisional (spec §8 open question, due before `sdd:api`) — treat the load scenario as a placeholder to confirm/replace, not a committed gate.
+
+### CI placement
+
+- On every PR: unit tests (fast, no I/O).
+- On every PR (or a fast integration lane): integration tests, including the AC-10b concurrency test — all run against the ephemeral throwaway database.
+- On schedule / pre-release: the load scenarios above, once a load tool is selected and the provisional targets are confirmed.
+
 ## 8. Open questions
 
 - [ ] Should adding a Co-owner require the added user's consent? Default now: direct add, no consent (invite/consent flow deferred to the pet-invite feature). — owner: Tech Lead, due: before sdd:tasks
