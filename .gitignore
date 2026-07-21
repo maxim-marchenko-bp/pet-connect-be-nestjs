@@ -27,6 +27,10 @@ lerna-debug.log*
 .settings/
 *.sublime-workspace
 
+# SDD — per-developer local settings & worktrees
+.claude/*.local.md
+.worktrees/
+
 # IDE - VSCode
 .vscode/*
 !.vscode/settings.json
