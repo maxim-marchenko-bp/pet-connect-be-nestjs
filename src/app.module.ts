@@ -3,11 +3,18 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './core/core.module';
 import { RefreshTokenModule } from './modules/refresh-token/refresh-token.module';
 import { UserModule } from './modules/user/user.module';
+import { PetTypeModule } from './modules/pet-type/pet-type.module';
 import { APP_FILTER } from '@nestjs/core';
 import { DatabaseExceptionFilter } from './common/filters/database-exception.filter';
 
 @Module({
-  imports: [CoreModule, UserModule, AuthModule, RefreshTokenModule],
+  imports: [
+    CoreModule,
+    UserModule,
+    AuthModule,
+    RefreshTokenModule,
+    PetTypeModule,
+  ],
   providers: [
     {
       provide: APP_FILTER,
