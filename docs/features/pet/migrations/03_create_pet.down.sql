@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS "IDX_pet_type_id";
+DROP TABLE IF EXISTS "pet";
