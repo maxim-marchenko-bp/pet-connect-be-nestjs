@@ -291,6 +291,8 @@ components:
         id: { type: integer }
         code: { type: string }
         label: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     Pet:
       type: object
@@ -301,6 +303,8 @@ components:
         name: { type: string, maxLength: 255 }
         dateOfBirth: { type: string, format: date }
         type: { $ref: "#/components/schemas/PetType" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     PetCreate:
       type: object
