@@ -15,6 +15,7 @@ import { ListFilterService } from '../../common/list-filter/services/list-filter
 import { PetFilter, PetListFilter } from './types/pet-filter';
 import { PetPublic } from './types/pet-public.type';
 import { CreatePetDto } from './dto/create-pet.dto';
+import { UpdatePetDto } from './dto/update-pet.dto';
 import { toPublicPet } from './mappers/to-public-pet';
 import { ListFilterConfigMap } from '../../common/list-filter/types/list-filter-config.type';
 
@@ -78,6 +79,31 @@ export class PetService {
     });
 
     return { data: data.map(toPublicPet), totalCount };
+  }
+
+  async updatePet(
+    petId: number,
+    callerId: number,
+    updatePetDto: UpdatePetDto,
+  ): Promise<PetPublic> {
+    await this.assertCoOwner(petId, callerId);
+    const petType = await this.assertPetTypeExists(updatePetDto.typeId);
+
+    await this.petRepository.update(
+      { id: petId },
+      {
+        name: updatePetDto.name,
+        dateOfBirth: updatePetDto.dateOfBirth,
+        type: petType,
+      },
+    );
+
+    const updatedPet = await this.petRepository.findOne({
+      where: { id: petId },
+      relations: ['type'],
+    });
+
+    return toPublicPet(updatedPet);
   }
 
   private async assertPetTypeExists(typeId: number): Promise<PetType> {
