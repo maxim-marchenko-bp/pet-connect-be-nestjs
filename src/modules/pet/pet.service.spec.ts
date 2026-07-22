@@ -5,7 +5,6 @@ import { Repository } from 'typeorm';
 import { PetService } from './pet.service';
 import { Pet } from './pet.entity';
 import { PetTypeService } from '../pet-type/pet-type.service';
-import { UserService } from '../user/user.service';
 import { ListFilterService } from '../../common/list-filter/services/list-filter.service';
 
 describe('PetService.assertCoOwner', () => {
@@ -21,7 +20,6 @@ describe('PetService.assertCoOwner', () => {
           useValue: { findOne: jest.fn() },
         },
         { provide: PetTypeService, useValue: {} },
-        { provide: UserService, useValue: {} },
         { provide: ListFilterService, useValue: {} },
       ],
     }).compile();

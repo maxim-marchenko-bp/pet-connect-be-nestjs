@@ -5,15 +5,9 @@ import { PetService } from './pet.service';
 import { PetController } from './pet.controller';
 import { ListFilterModule } from '../../common/list-filter/list-filter.module';
 import { PetTypeModule } from '../pet-type/pet-type.module';
-import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Pet]),
-    ListFilterModule,
-    PetTypeModule,
-    UserModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Pet]), ListFilterModule, PetTypeModule],
   controllers: [PetController],
   providers: [PetService],
   exports: [PetService],

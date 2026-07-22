@@ -11,7 +11,6 @@ import { Pet } from './pet.entity';
 import { PetType } from '../pet-type/pet-type.entity';
 import { User } from '../user/user.entity';
 import { PetTypeService } from '../pet-type/pet-type.service';
-import { UserService } from '../user/user.service';
 import { ListFilterService } from '../../common/list-filter/services/list-filter.service';
 import { PetFilter, PetListFilter } from './types/pet-filter';
 import { PetPublic } from './types/pet-public.type';
@@ -27,7 +26,6 @@ export class PetService {
   constructor(
     @InjectRepository(Pet) private readonly petRepository: Repository<Pet>,
     private readonly petTypeService: PetTypeService,
-    private readonly userService: UserService,
     private readonly filterService: ListFilterService<PetFilter, PetPublic>,
   ) {}
 
