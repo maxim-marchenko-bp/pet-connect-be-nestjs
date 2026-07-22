@@ -17,7 +17,9 @@ import { PetPublic } from './types/pet-public.type';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { toPublicPet } from './mappers/to-public-pet';
+import { toPublicCoOwner } from './mappers/to-public-co-owner';
 import { ListFilterConfigMap } from '../../common/list-filter/types/list-filter-config.type';
+import { CoOwnerPublic } from './types/co-owner-public.type';
 
 @Injectable()
 export class PetService {
@@ -110,6 +112,35 @@ export class PetService {
     await this.assertCoOwner(petId, callerId);
     await this.petRepository.delete({ id: petId });
     return { id: petId };
+  }
+
+  async getCoOwners(petId: number): Promise<{ data: CoOwnerPublic[] }> {
+    const pet = await this.petRepository.findOne({
+      where: { id: petId },
+      relations: ['users'],
+    });
+
+    if (!pet) {
+      throw new NotFoundException('Pet not found');
+    }
+
+    return { data: pet.users.map(toPublicCoOwner) };
+  }
+
+  async addCoOwner(
+    petId: number,
+    callerId: number,
+    targetUserId: number,
+  ): Promise<{ data: CoOwnerPublic[] }> {
+    const pet = await this.assertCoOwner(petId, callerId);
+
+    const alreadyMember = pet.users.some((user) => user.id === targetUserId);
+    if (!alreadyMember) {
+      pet.users = [...pet.users, { id: targetUserId } as User];
+      await this.petRepository.save(pet);
+    }
+
+    return this.getCoOwners(petId);
   }
 
   private async assertPetTypeExists(typeId: number): Promise<PetType> {

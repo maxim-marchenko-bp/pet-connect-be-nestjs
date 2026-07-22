@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Put,
@@ -12,6 +13,7 @@ import { PetService } from './pet.service';
 import { AuthUser } from '../../core/auth/decorators/auth-user.decorator';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
+import { AddCoOwnerDto } from './dto/add-co-owner.dto';
 import { PetListFilter } from './types/pet-filter';
 
 @Controller('pets')
@@ -48,5 +50,20 @@ export class PetController {
   @Delete(':id')
   deletePet(@Param('id') id: number, @AuthUser('sub') userId: number) {
     return this.petService.deletePet(id, userId);
+  }
+
+  @Get(':id/co-owners')
+  getCoOwners(@Param('id') id: number) {
+    return this.petService.getCoOwners(id);
+  }
+
+  @Post(':id/co-owners')
+  @HttpCode(200)
+  addCoOwner(
+    @Param('id') id: number,
+    @AuthUser('sub') userId: number,
+    @Body() addCoOwnerDto: AddCoOwnerDto,
+  ) {
+    return this.petService.addCoOwner(id, userId, addCoOwnerDto.userId);
   }
 }
