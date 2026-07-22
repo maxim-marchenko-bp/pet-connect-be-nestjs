@@ -66,4 +66,13 @@ export class PetController {
   ) {
     return this.petService.addCoOwner(id, userId, addCoOwnerDto.userId);
   }
+
+  @Delete(':id/co-owners/:userId')
+  removeCoOwner(
+    @Param('id') id: number,
+    @Param('userId') targetUserId: number,
+    @AuthUser('sub') userId: number,
+  ) {
+    return this.petService.removeCoOwner(id, userId, targetUserId);
+  }
 }

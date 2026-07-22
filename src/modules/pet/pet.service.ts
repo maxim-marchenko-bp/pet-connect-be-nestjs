@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -141,6 +142,51 @@ export class PetService {
     }
 
     return this.getCoOwners(petId);
+  }
+
+  async removeCoOwner(
+    petId: number,
+    callerId: number,
+    targetUserId: number,
+  ): Promise<{ data: CoOwnerPublic[] }> {
+    return this.petRepository.manager.transaction(async (manager) => {
+      const lockedPet = await manager.findOne(Pet, {
+        where: { id: petId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!lockedPet) {
+        throw new NotFoundException('Pet not found');
+      }
+
+      const pet = await manager.findOne(Pet, {
+        where: { id: petId },
+        relations: ['users'],
+      });
+
+      const isCallerMember = pet.users.some((user) => user.id === callerId);
+      if (!isCallerMember) {
+        throw new ForbiddenException('Not a co-owner of this pet');
+      }
+
+      const isTargetMember = pet.users.some((user) => user.id === targetUserId);
+      if (!isTargetMember) {
+        throw new NotFoundException(
+          'Target user is not a co-owner of this pet',
+        );
+      }
+
+      if (pet.users.length <= 1) {
+        throw new ConflictException(
+          'A pet must keep at least one owner — delete it instead',
+        );
+      }
+
+      pet.users = pet.users.filter((user) => user.id !== targetUserId);
+      await manager.save(pet);
+
+      return { data: pet.users.map(toPublicCoOwner) };
+    });
   }
 
   private async assertPetTypeExists(typeId: number): Promise<PetType> {
