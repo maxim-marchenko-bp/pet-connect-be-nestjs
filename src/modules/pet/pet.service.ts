@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Pet } from './pet.entity';
@@ -16,4 +20,22 @@ export class PetService {
     private readonly userService: UserService,
     private readonly filterService: ListFilterService<PetListFilter, PetPublic>,
   ) {}
+
+  async assertCoOwner(petId: number, callerId: number): Promise<Pet> {
+    const pet = await this.petRepository.findOne({
+      where: { id: petId },
+      relations: ['users'],
+    });
+
+    if (!pet) {
+      throw new NotFoundException('Pet not found');
+    }
+
+    const isMember = pet.users.some((user) => user.id === callerId);
+    if (!isMember) {
+      throw new ForbiddenException('Not a co-owner of this pet');
+    }
+
+    return pet;
+  }
 }
