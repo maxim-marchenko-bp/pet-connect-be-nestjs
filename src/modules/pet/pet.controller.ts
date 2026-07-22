@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { PetService } from './pet.service';
 import { AuthUser } from '../../core/auth/decorators/auth-user.decorator';
 import { CreatePetDto } from './dto/create-pet.dto';
@@ -34,5 +43,10 @@ export class PetController {
     @Body() updatePetDto: UpdatePetDto,
   ) {
     return this.petService.updatePet(id, userId, updatePetDto);
+  }
+
+  @Delete(':id')
+  deletePet(@Param('id') id: number, @AuthUser('sub') userId: number) {
+    return this.petService.deletePet(id, userId);
   }
 }

@@ -106,6 +106,12 @@ export class PetService {
     return toPublicPet(updatedPet);
   }
 
+  async deletePet(petId: number, callerId: number): Promise<{ id: number }> {
+    await this.assertCoOwner(petId, callerId);
+    await this.petRepository.delete({ id: petId });
+    return { id: petId };
+  }
+
   private async assertPetTypeExists(typeId: number): Promise<PetType> {
     try {
       return await this.petTypeService.getById(typeId);
