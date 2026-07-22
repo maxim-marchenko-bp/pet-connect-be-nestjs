@@ -12,10 +12,11 @@ import { User } from '../user/user.entity';
 import { PetTypeService } from '../pet-type/pet-type.service';
 import { UserService } from '../user/user.service';
 import { ListFilterService } from '../../common/list-filter/services/list-filter.service';
-import { PetListFilter } from './types/pet-filter';
+import { PetFilter, PetListFilter } from './types/pet-filter';
 import { PetPublic } from './types/pet-public.type';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { toPublicPet } from './mappers/to-public-pet';
+import { ListFilterConfigMap } from '../../common/list-filter/types/list-filter-config.type';
 
 @Injectable()
 export class PetService {
@@ -23,7 +24,7 @@ export class PetService {
     @InjectRepository(Pet) private readonly petRepository: Repository<Pet>,
     private readonly petTypeService: PetTypeService,
     private readonly userService: UserService,
-    private readonly filterService: ListFilterService<PetListFilter, PetPublic>,
+    private readonly filterService: ListFilterService<PetFilter, PetPublic>,
   ) {}
 
   async createPet(
@@ -46,6 +47,37 @@ export class PetService {
     });
 
     return toPublicPet(reloadedPet);
+  }
+
+  async getPetById(id: number): Promise<PetPublic> {
+    const pet = await this.petRepository.findOne({
+      where: { id },
+      relations: ['type'],
+    });
+
+    if (!pet) {
+      throw new NotFoundException('Pet not found');
+    }
+
+    return toPublicPet(pet);
+  }
+
+  async getFilteredPetsList(filters: PetListFilter) {
+    const searchFields = this.filterService.generateSearchFields('name');
+    const filterConfig: ListFilterConfigMap<PetFilter, PetPublic> = {};
+    const normalizedFilters = this.filterService.normalizeFilters(
+      filters,
+      filterConfig,
+      searchFields,
+    );
+
+    const [data, totalCount] = await this.petRepository.findAndCount({
+      ...normalizedFilters,
+      relations: ['type'],
+      order: { id: 'ASC' },
+    });
+
+    return { data: data.map(toPublicPet), totalCount };
   }
 
   private async assertPetTypeExists(typeId: number): Promise<PetType> {

@@ -1,3 +1,6 @@
 import { GenericFilter } from '../../../shared/types/generic-filter';
 
-export type PetListFilter = GenericFilter;
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface PetFilter {}
+
+export type PetListFilter = PetFilter & GenericFilter;
