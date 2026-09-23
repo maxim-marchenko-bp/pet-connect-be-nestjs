@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 
-const CHECK_TOOLS = ["Read", "Write", "Edit"];
+const CHECK_TOOLS = ['Read', 'Write', 'Edit'];
 
 const toolName = input.tool_name;
 const toolInput = input.tool_input ?? {};
