@@ -8,6 +8,10 @@ import { GenericFilter } from '../../../shared/types/generic-filter';
 import { Between, ILike, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { isDefined } from 'class-validator';
 
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 10;
+const MIN_PAGE = 1;
+
 type GroupedFiltersMapKey<FilteredEntity> = keyof FilteredEntity;
 type GroupedFiltersMapValue = (ListFilterConfig & { filterField: string })[];
 type WhereConditions<FilteredEntity> = Record<keyof FilteredEntity, any>;
@@ -26,9 +30,14 @@ export class ListFilterService<ListFilter, FilteredEntity> {
     filterConfig: ListFilterConfigMap<ListFilter>,
     searchFields: (keyof FilteredEntity)[],
   ) {
+    const page = Math.max(MIN_PAGE, Number(filters.page) || MIN_PAGE);
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, Number(filters.pageSize) || DEFAULT_PAGE_SIZE),
+    );
     const paginatedFilters = {
-      skip: (filters.page - 1) * filters.pageSize,
-      take: filters.pageSize,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     };
     const whereConditions = {} as WhereConditions<FilteredEntity>;
     const groupedFiltersMap = new Map<

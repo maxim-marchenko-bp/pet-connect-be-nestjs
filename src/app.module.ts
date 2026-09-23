@@ -4,6 +4,7 @@ import { CoreModule } from './core/core.module';
 import { RefreshTokenModule } from './modules/refresh-token/refresh-token.module';
 import { UserModule } from './modules/user/user.module';
 import { PetTypeModule } from './modules/pet-type/pet-type.module';
+import { PetModule } from './modules/pet/pet.module';
 import { APP_FILTER } from '@nestjs/core';
 import { DatabaseExceptionFilter } from './common/filters/database-exception.filter';
 
@@ -14,6 +15,7 @@ import { DatabaseExceptionFilter } from './common/filters/database-exception.fil
     AuthModule,
     RefreshTokenModule,
     PetTypeModule,
+    PetModule,
   ],
   providers: [
     {
