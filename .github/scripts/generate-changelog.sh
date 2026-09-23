@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "::error::generate-changelog.sh failed at line $LINENO"' ERR
 
 : "${ENTRY_ID:?}"
 : "${ENTRY_TITLE:?}"
@@ -24,7 +25,28 @@ PROMPT
 printf '%s\n\nPR Description:\n%s\n\nDiff:\n%s\n' \
   "$ENTRY_TITLE" "$ENTRY_BODY" "${ENTRY_DIFF:0:20000}" >> "$PROMPT_FILE"
 
-NOTES="$(claude -p "$(cat "$PROMPT_FILE")" --output-format text --permission-mode bypassPermissions --max-turns 5)"
+echo "::group::generate-changelog prompt"
+cat "$PROMPT_FILE"
+echo "::endgroup::"
+
+CLAUDE_ERR_FILE="$(mktemp)"
+if ! NOTES="$(claude -p "$(cat "$PROMPT_FILE")" --output-format text --permission-mode bypassPermissions --max-turns 5 2>"$CLAUDE_ERR_FILE")"; then
+  CLAUDE_EXIT=$?
+  echo "::error::claude CLI exited with code $CLAUDE_EXIT"
+  echo "::group::claude stderr"
+  cat "$CLAUDE_ERR_FILE"
+  echo "::endgroup::"
+  rm -f "$CLAUDE_ERR_FILE"
+  exit "$CLAUDE_EXIT"
+fi
+echo "::group::claude stderr"
+cat "$CLAUDE_ERR_FILE"
+echo "::endgroup::"
+rm -f "$CLAUDE_ERR_FILE"
+
+echo "::group::generate-changelog notes"
+echo "$NOTES"
+echo "::endgroup::"
 
 if [ -z "$NOTES" ]; then
   NOTES="- ${ENTRY_TITLE}"
