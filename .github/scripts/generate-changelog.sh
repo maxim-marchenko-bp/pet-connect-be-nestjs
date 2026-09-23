@@ -12,20 +12,17 @@ ENTRY_DIFF="${ENTRY_DIFF:-}"
 PROMPT_FILE="$(mktemp)"
 trap 'rm -f "$PROMPT_FILE"' EXIT
 
-cat > "$PROMPT_FILE" <<PROMPT
+cat > "$PROMPT_FILE" <<'PROMPT'
 You write concise CHANGELOG.md entries for a NestJS backend project.
 Given a merged pull request's title, description, and diff, output 1-3 short bullet points
 (each starting with "- ") describing the user-facing or developer-facing changes, in plain past-tense English.
 Do not include headings, PR links, author names, or any preamble/explanation - output only the bullet points.
 
-PR Title: ${ENTRY_TITLE}
-
-PR Description:
-${ENTRY_BODY}
-
-Diff:
-${ENTRY_DIFF:0:20000}
+PR Title:
 PROMPT
+
+printf '%s\n\nPR Description:\n%s\n\nDiff:\n%s\n' \
+  "$ENTRY_TITLE" "$ENTRY_BODY" "${ENTRY_DIFF:0:20000}" >> "$PROMPT_FILE"
 
 NOTES="$(claude -p "$(cat "$PROMPT_FILE")" --output-format text --permission-mode bypassPermissions --max-turns 5)"
 
