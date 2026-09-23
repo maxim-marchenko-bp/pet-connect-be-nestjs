@@ -1,6 +1,8 @@
 name: Update Changelog
 
 on:
+  push:
+    branches: [master]
   pull_request:
     types: [closed]
     branches: [master]
@@ -11,7 +13,7 @@ permissions:
 
 jobs:
   update-changelog:
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout master
@@ -28,31 +30,38 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
-      - name: Get PR diff
-        id: pr_diff
+      - name: Get diff
+        id: get_diff
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr diff "$PR_NUMBER" > pr.diff
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            gh pr diff "$PR_NUMBER" > entry.diff
+          else
+            git diff "${{ github.event.before }}" "${{ github.event.after }}" > entry.diff
+          fi
           {
             echo 'diff<<PRDIFF_EOF'
-            cat pr.diff
+            cat entry.diff
             echo 'PRDIFF_EOF'
           } >> "$GITHUB_ENV"
 
       - name: Generate release notes and update CHANGELOG.md
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          PR_DIFF: ${{ env.diff }}
+          ENTRY_ID: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.after }}
+          ENTRY_TITLE: ${{ github.event_name == 'pull_request' && github.event.pull_request.title || github.event.head_commit.message }}
+          ENTRY_BODY: ${{ github.event.pull_request.body }}
+          ENTRY_URL: ${{ github.event_name == 'pull_request' && github.event.pull_request.html_url || github.event.head_commit.url }}
+          ENTRY_AUTHOR: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login || github.event.head_commit.author.username }}
+          ENTRY_KIND: ${{ github.event_name == 'pull_request' && 'pr' || 'commit' }}
+          ENTRY_DIFF: ${{ env.diff }}
         run: .github/scripts/generate-changelog.sh
 
       - name: Commit and push
+        env:
+          ENTRY_ID: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.after }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -60,6 +69,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "docs: update changelog for PR #${{ github.event.pull_request.number }}"
+            git commit -m "docs: update changelog for ${ENTRY_ID}"
             git push origin HEAD:master
           fi

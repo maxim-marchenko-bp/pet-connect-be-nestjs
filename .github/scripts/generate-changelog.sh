@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${PR_NUMBER:?}"
-: "${PR_TITLE:?}"
-: "${PR_URL:?}"
-: "${PR_AUTHOR:?}"
-PR_BODY="${PR_BODY:-}"
-PR_DIFF="${PR_DIFF:-}"
+: "${ENTRY_ID:?}"
+: "${ENTRY_TITLE:?}"
+: "${ENTRY_URL:?}"
+: "${ENTRY_AUTHOR:?}"
+ENTRY_KIND="${ENTRY_KIND:-pr}"
+ENTRY_BODY="${ENTRY_BODY:-}"
+ENTRY_DIFF="${ENTRY_DIFF:-}"
 
 PROMPT_FILE="$(mktemp)"
 trap 'rm -f "$PROMPT_FILE"' EXIT
@@ -17,19 +18,19 @@ Given a merged pull request's title, description, and diff, output 1-3 short bul
 (each starting with "- ") describing the user-facing or developer-facing changes, in plain past-tense English.
 Do not include headings, PR links, author names, or any preamble/explanation - output only the bullet points.
 
-PR Title: ${PR_TITLE}
+PR Title: ${ENTRY_TITLE}
 
 PR Description:
-${PR_BODY}
+${ENTRY_BODY}
 
 Diff:
-${PR_DIFF:0:20000}
+${ENTRY_DIFF:0:20000}
 PROMPT
 
 NOTES="$(claude -p "$(cat "$PROMPT_FILE")" --output-format text --permission-mode bypassPermissions --max-turns 5)"
 
 if [ -z "$NOTES" ]; then
-  NOTES="- ${PR_TITLE}"
+  NOTES="- ${ENTRY_TITLE}"
 fi
 
 DATE="$(date -u +%Y-%m-%d)"
@@ -42,13 +43,19 @@ fi
 ENTRY_FILE="$(mktemp)"
 trap 'rm -f "$PROMPT_FILE" "$ENTRY_FILE"' EXIT
 
+if [ "$ENTRY_KIND" = "commit" ]; then
+  FOOTER="_Commit [${ENTRY_ID:0:7}](${ENTRY_URL}) by @${ENTRY_AUTHOR}_"
+else
+  FOOTER="_PR [#${ENTRY_ID}](${ENTRY_URL}) by @${ENTRY_AUTHOR}_"
+fi
+
 {
   echo ""
   echo "## ${DATE}"
   echo ""
   echo "$NOTES"
   echo ""
-  echo "_PR [#${PR_NUMBER}](${PR_URL}) by @${PR_AUTHOR}_"
+  echo "$FOOTER"
 } > "$ENTRY_FILE"
 
 awk -v entryfile="$ENTRY_FILE" '
