@@ -30,19 +30,23 @@ cat "$PROMPT_FILE"
 echo "::endgroup::"
 
 CLAUDE_ERR_FILE="$(mktemp)"
-if ! NOTES="$(claude -p "$(cat "$PROMPT_FILE")" --output-format text --permission-mode bypassPermissions --max-turns 5 2>"$CLAUDE_ERR_FILE")"; then
-  CLAUDE_EXIT=$?
-  echo "::error::claude CLI exited with code $CLAUDE_EXIT"
-  echo "::group::claude stderr"
-  cat "$CLAUDE_ERR_FILE"
-  echo "::endgroup::"
-  rm -f "$CLAUDE_ERR_FILE"
-  exit "$CLAUDE_EXIT"
-fi
+set +e
+NOTES="$(claude -p "$(cat "$PROMPT_FILE")" --output-format text --permission-mode bypassPermissions --max-turns 5 2>"$CLAUDE_ERR_FILE")"
+CLAUDE_EXIT=$?
+set -e
+
 echo "::group::claude stderr"
 cat "$CLAUDE_ERR_FILE"
 echo "::endgroup::"
 rm -f "$CLAUDE_ERR_FILE"
+
+if [ "$CLAUDE_EXIT" -ne 0 ]; then
+  echo "::error::claude CLI exited with code $CLAUDE_EXIT"
+  echo "::group::claude stdout"
+  echo "$NOTES"
+  echo "::endgroup::"
+  exit "$CLAUDE_EXIT"
+fi
 
 echo "::group::generate-changelog notes"
 echo "$NOTES"
