@@ -38,3 +38,6 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 /.env
+
+# SDLC skill local config (not committed)
+.claude/sdlc.local.md
