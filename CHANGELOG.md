@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-28
+
+- Added a Product Requirements Document and context glossary for the pet-management feature, defining pet records, creator/co-owner roles, and shareable-link co-ownership.
+- Ignored the local SDLC skill config file (`.claude/sdlc.local.md`) in `.gitignore`.
+
+_Commit [f204b4c](https://github.com/maxim-marchenko-bp/pet-connect-be-nestjs/commit/f204b4c863b9c25af874ffb4ebf5eedf50edda57) by @Maksym Marchenko_
+
 ## 2026-09-25
 
 - Added `docs/features/pet-management/idea-brief.md` capturing the Stage 01 idea brief for the Pet Management feature, including problem framing, strategic approaches, RICE scoring, and a recommended equal-access co-ownership model.
