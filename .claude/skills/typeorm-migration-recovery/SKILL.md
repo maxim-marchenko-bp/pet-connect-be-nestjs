@@ -1,7 +1,7 @@
 ---
 name: typeorm-migration-recovery
 description: Use when a TypeORM migration fails, is partially applied, gets out of sync with the database, or a migration/deployment leaves the PostgreSQL schema in an inconsistent state. Use when you need to diagnose, recover, revert, or safely re-run NestJS TypeORM migrations.
-allowed-tools: Bash, Read, Grep
+tools: Bash, Read, Grep
 -------------------------------
 
 # TypeORM Migration Recovery
